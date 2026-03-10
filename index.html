@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语空间思维引擎 (0.1s 造句模拟器)</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- GSAP (Animation Engine for smooth 2D transitions) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h1 class="logo">🚀 英语思维引擎</h1>
+            <p class="subtitle">0.1s造句还原器 (NLP版)</p>
+
+            <div class="input-panel">
+                <label for="sentenceInput">自由脑波输入：</label>
+                <textarea id="sentenceInput" placeholder="输入任意真实的英语句子，例如：\nThe apple might have been eaten by the boy."
+                    rows="4"></textarea>
+                <button id="btnAnalyze" class="action-btn">⚡ 解析底层逻辑</button>
+            </div>
+
+            <div class="category-filter" style="margin-top: 20px;">
+                <label>解析历史记录：</label>
+            </div>
+            <div class="sentence-list" id="sentenceList">
+                <!-- History injected here -->
+            </div>
+        </aside>
+
+        <!-- Main Stage -->
+        <main class="stage">
+            <header class="stage-header">
+                <h2 id="currentSentence" class="glow-text">请在左侧选择一句开始演练</h2>
+                <div class="controls">
+                    <button id="btnPlay" disabled>▶ 开始/重播 0.1秒解析</button>
+                    <button id="btnSlow" disabled>🐌 慢动作解析</button>
+                </div>
+            </header>
+
+            <div class="visualization-area" id="visArea">
+                <div class="vis-container" id="visContainer">
+                    <div class="intro-placeholder">输入或选择一个句子，开启 0.1 秒的大脑认知建模之旅...</div>
+                </div>
+            </div>
+
+            <div id="loading-overlay" class="overlay hidden">
+                <div class="spinner"></div>
+                <p>大脑神经中枢分析中...</p>
+            </div>
+
+            <div class="detail-panel" id="detailPanel">
+                <h3>底层逻辑解析 <span id="stepCounter">(0/5)</span></h3>
+                <p id="detailDesc">选择句子以查看每个模块在大脑中的瞬间动作。</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Data & Logic script -->
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
