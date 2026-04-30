@@ -1,45 +1,70 @@
-# 🚀 英语逻辑 3D 认知空间引擎 (v1.0 稳定版)
+# 英语逻辑 3D 认知空间引擎
 
-这是一个基于**认知语言学 (Cognitive Linguistics)** 和 **生成语法 (Generative Grammar)** 理论开发的英语造句模拟器。它通过 3D/2D 视觉图形，还原英语母语者在大脑中 0.1 秒产生句子的认知建模过程。
+> 用视觉化手段重建英语母语者的认知建模过程——从情态思维到现实凝固的完整创世流程。
 
-## 🌟 核心特性
+---
 
-- **NLP 认知大脑**：通过 Python `spaCy` 深度学习模型，实时解析任意英语句子的语法结构。
-- **5 步认知建模**：
-    1. **确立原点 (Trajector)**：识别主语及其性质。
-    2. **划定疆域 (Epistemic Domain)**：区分现实域 (Fact) 与非现实域 (Modality)。
-    3. **打上时间戳 (Temporal Grounding)**：定位时间轴（过去 vs 现在）。
-    4. **事件底色 (Action Chain)**：选择核心能量模式 (Be / Do / Have)。
-    5. **空间界标 (Landmark)**：确定动作的落点或状态的依附。
-- **稳定视觉引擎**：采用高性能 CSS 3D 渲染，确保在各种浏览器环境下都能平滑运行。
-- **本地 Web 托管**：内置 FastAPI 服务器，一键启动。
+## 🆕 v2.3 — 英语创世流程 (English Creation Flow)
 
-## 🛠 快速开始
+**路径：** `creation_flow/`  
+**启动：** `python -m http.server 7788` 然后访问 `http://localhost:7788`
 
-### 1. 环境准备
+### 核心理论
 
-确保已安装 Python 3.8+，并安装依赖：
+英语时态-情态系统被建模为一个**二维拓扑空间**中的"创世流程"：
+
+| 轴 | 含义 |
+|---|---|
+| **X 轴** | 时间：Past ← NOW → Future |
+| **Y 轴** | 现实度：↓ Realis/已坍缩 · ↑ Irrealis/未坍缩 |
+
+**5步创世流程：**
+1. **混沌** — 情态空间 (might / could / may)，事件悬浮于可能性中
+2. **评估可行性** — can / must / should，条件门是否敞开
+3. **意志锚定** — will / be going to，从可能中抓取未来
+4. **降临现实** — is doing / NOW，事件穿越坍缩边界
+5. **历史凝固** — made / had made，结晶为不可更改的历史地层
+
+**关键洞见：** 情态过去式形态（would / could have / might have）是**垂直于 NOW 的上方空间**，而非水平时间轴上的"过去"——它们标记的是说话者与命题之间的心理距离，不是时间距离。
+
+### 交互功能
+- 🖱 拖拽旋转 / 滚轮缩放 / 右键平移
+- 点击底部 5 步流程按钮，摄像机平滑移动到对应区域
+- 悬停任意节点，弹出详情卡（含中英解释）
+
+---
+
+## v2.0 — 3D 四象限逻辑空间
+
+**路径：** `3d_room/`
+
+基于 Three.js 的四象限模型，以 Subject/Trajector（主语原点）为中心，在四个空间象限中展示英语时态的认知维度。
+
+---
+
+## v1.0 — NLP 认知引擎（稳定版）
+
+**路径：** 根目录 (`index.html` + `backend.py`)
+
+基于 **认知语言学** 和 **生成语法** 理论的英语造句模拟器，通过 `spaCy` 深度学习模型实时解析句子，还原 5 步认知建模过程。
+
+### 快速开始
 
 ```bash
 pip install fastapi uvicorn spacy pydantic
 python -m spacy download en_core_web_sm
-```
-
-### 2. 启动程序
-
-在项目根目录下运行：
-
-```bash
 python backend.py
+# 访问 http://localhost:8000
 ```
 
-### 3. 开始体验
-
-浏览器访问：`http://localhost:8000`
+---
 
 ## 📖 理论背景
 
-本项目参考了 **乔姆斯基 (Noam Chomsky)** 的“普遍语法”和 **朗盖克 (Ronald Langacker)** 的“认知文法”模型，旨在通过视觉化手段降低英语学习者的认知负荷，建立直觉化的语感算法。
+本项目参考：
+- **乔姆斯基 (Noam Chomsky)** — 普遍语法
+- **朗盖克 (Ronald Langacker)** — 认知文法
+- **可能世界语义学 (Possible World Semantics)** — 情态动词的形式化分析框架
 
 ---
 *Created by Antigravity AI*

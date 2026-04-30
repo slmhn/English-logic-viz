@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语创世流程 — English Creation Flow 3D</title>
+    <meta name="description" content="A 3D interactive model of the English tense-modal system as a world-creation process: from modal possibility space through collapse to crystallized history.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Fallback font if Google Fonts fails */
+        body { font-family: 'Outfit', 'Segoe UI', Arial, sans-serif; }
+    </style>
+</head>
+<body>
+    <!-- UI Overlay -->
+    <div id="ui-overlay">
+        <div id="header-panel">
+            <h1>英语创世流程</h1>
+            <p class="subtitle">English Creation Flow · 3D Ontological Model</p>
+        </div>
+
+        <div id="legend-panel">
+            <div class="legend-section">
+                <div class="legend-dot modal"></div>
+                <div class="legend-text">
+                    <span class="legend-label">Modal Space / 情态空间</span>
+                    <span class="legend-desc">未坍缩 · Uncollapsed thought</span>
+                </div>
+            </div>
+            <div class="legend-section">
+                <div class="legend-dot now"></div>
+                <div class="legend-text">
+                    <span class="legend-label">NOW Blade / 坍缩边界</span>
+                    <span class="legend-desc">观测点 · The collapse line</span>
+                </div>
+            </div>
+            <div class="legend-section">
+                <div class="legend-dot past"></div>
+                <div class="legend-text">
+                    <span class="legend-label">Past Domain / 历史层</span>
+                    <span class="legend-desc">已坍缩 · Crystallized reality</span>
+                </div>
+            </div>
+            <div class="legend-section">
+                <div class="legend-dot vertical"></div>
+                <div class="legend-text">
+                    <span class="legend-label">Modal Past Forms</span>
+                    <span class="legend-desc">垂直空间 · NOT horizontal past</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="info-panel">
+            <p id="hover-text">将鼠标悬停在节点上查看详情</p>
+        </div>
+
+        <div id="controls-hint">
+            <span>🖱 拖拽旋转</span>
+            <span>🔍 滚轮缩放</span>
+            <span>✋ 右键平移</span>
+        </div>
+    </div>
+
+    <!-- Flow Step Buttons -->
+    <div id="flow-controls">
+        <button class="flow-btn active" data-step="0" id="btn-0">① 混沌</button>
+        <button class="flow-btn" data-step="1" id="btn-1">② 可能性</button>
+        <button class="flow-btn" data-step="2" id="btn-2">③ 意志锚定</button>
+        <button class="flow-btn" data-step="3" id="btn-3">④ 降临现实</button>
+        <button class="flow-btn" data-step="4" id="btn-4">⑤ 历史凝固</button>
+        <button class="flow-btn" data-step="5" id="btn-5">全景</button>
+    </div>
+
+    <canvas id="three-canvas"></canvas>
+
+    <!-- Three.js r134 — widely mirrored, stable UMD build -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <!-- OrbitControls matching r134 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

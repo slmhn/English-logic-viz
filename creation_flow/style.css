@@ -1,0 +1,308 @@
+/* ========================
+   English Creation Flow — style.css
+   ======================== */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;600;800&display=swap');
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --modal-color: #b44fff;
+    --modal-glow: #9b30ff;
+    --now-color: #00f5ff;
+    --now-glow: #00d4e8;
+    --past-color: #ff6b35;
+    --past-glow: #ff4500;
+    --vertical-color: #7fff7f;
+    --bg: #05020f;
+    --glass-bg: rgba(10, 5, 25, 0.75);
+    --glass-border: rgba(180, 79, 255, 0.2);
+    --text-primary: #e8e0ff;
+    --text-secondary: #9080b0;
+}
+
+body {
+    background: var(--bg);
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+#three-canvas {
+    position: fixed;
+    inset: 0;
+    display: block;
+}
+
+/* ========================
+   UI Overlay
+   ======================== */
+#ui-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 24px;
+}
+
+/* Header */
+#header-panel {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 16px;
+    padding: 16px 24px;
+    width: fit-content;
+    pointer-events: auto;
+    animation: fadeSlideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#header-panel h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--now-color), var(--modal-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+}
+
+.subtitle {
+    font-size: 0.75rem;
+    font-weight: 200;
+    color: var(--text-secondary);
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+}
+
+/* Legend */
+#legend-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: fit-content;
+    animation: fadeSlideLeft 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.legend-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 10px;
+    padding: 8px 12px;
+    pointer-events: auto;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px 2px currentColor;
+}
+.legend-dot.modal { background: var(--modal-color); color: var(--modal-color); }
+.legend-dot.now   { background: var(--now-color);   color: var(--now-color); }
+.legend-dot.past  { background: var(--past-color);  color: var(--past-color); }
+.legend-dot.vertical { background: var(--vertical-color); color: var(--vertical-color); }
+
+.legend-text {
+    display: flex;
+    flex-direction: column;
+}
+.legend-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.legend-desc {
+    font-size: 0.65rem;
+    font-weight: 200;
+    color: var(--text-secondary);
+    letter-spacing: 0.03em;
+}
+
+/* Info panel */
+#info-panel {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 12px;
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 320px;
+    max-width: 500px;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    animation: fadeSlideUp 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#hover-text {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    transition: color 0.3s ease;
+}
+
+#info-panel.highlighted #hover-text {
+    color: var(--text-primary);
+}
+
+/* Controls hint */
+#controls-hint {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: auto;
+    animation: fadeSlideLeft 0.8s 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#controls-hint span {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 0.7rem;
+    font-weight: 200;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* ========================
+   Flow Controls
+   ======================== */
+#flow-controls {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 20;
+    animation: fadeSlideUp 0.8s 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.flow-btn {
+    background: rgba(10, 5, 25, 0.8);
+    border: 1px solid rgba(180, 79, 255, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--text-secondary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+}
+
+.flow-btn:hover {
+    background: rgba(180, 79, 255, 0.15);
+    border-color: rgba(180, 79, 255, 0.6);
+    color: var(--modal-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(180, 79, 255, 0.2);
+}
+
+.flow-btn.active {
+    background: linear-gradient(135deg, rgba(180, 79, 255, 0.3), rgba(0, 245, 255, 0.15));
+    border-color: var(--modal-color);
+    color: var(--text-primary);
+    box-shadow: 0 0 20px rgba(180, 79, 255, 0.3), inset 0 0 10px rgba(0, 245, 255, 0.05);
+}
+
+/* ========================
+   Animations
+   ======================== */
+@keyframes fadeSlideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeSlideLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Tooltip-like node info card */
+#node-card {
+    position: fixed;
+    pointer-events: none;
+    background: rgba(5, 2, 15, 0.92);
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 200px;
+    max-width: 280px;
+    z-index: 30;
+    opacity: 0;
+    transform: scale(0.9) translateY(4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    border: 1px solid rgba(180, 79, 255, 0.4);
+    backdrop-filter: blur(16px);
+}
+
+#node-card.visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+#node-card .card-tag {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--modal-color);
+    margin-bottom: 4px;
+}
+
+#node-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+#node-card .card-en {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--now-color);
+    margin-bottom: 6px;
+    font-style: italic;
+}
+
+#node-card .card-desc {
+    font-size: 0.72rem;
+    font-weight: 300;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
