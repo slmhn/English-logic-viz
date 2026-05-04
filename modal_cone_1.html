@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>英语情态思维模型 — 完整情态词</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#08080f;
+  color:#ddd;
+  font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+#header {
+  padding:10px 20px 6px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  flex-shrink:0;
+}
+#header h1 { font-size:14px; font-weight:600; color:#ccc; }
+#header p  { font-size:11px; color:#555; margin-top:2px; }
+#scene { flex:1; min-height:0; position:relative; }
+canvas { display:block; width:100%!important; height:100%!important; }
+#hint  { position:absolute; bottom:8px; right:12px; font-size:11px;
+         color:rgba(255,255,255,.15); pointer-events:none; }
+#ui {
+  padding:8px 20px 12px;
+  border-top:1px solid rgba(255,255,255,0.07);
+  flex-shrink:0;
+}
+#btns { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:7px; }
+.btn {
+  font-size:11px; padding:3px 11px; border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  color:#777; cursor:pointer; transition:all .15s; font-family:inherit;
+}
+.btn:hover { background:rgba(255,255,255,.09); color:#ccc; }
+.btn.on { background:rgba(255,255,255,.14); color:#fff; border-color:rgba(255,255,255,.4); }
+#info { font-size:12px; color:#777; line-height:1.6; min-height:32px; }
+#info b { color:#bbb; } #info i { color:#888; }
+/* modal word tooltip */
+#tooltip {
+  position:absolute; top:12px; left:12px;
+  background:rgba(10,10,20,0.92);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:8px; padding:10px 14px;
+  font-size:12px; line-height:1.7;
+  color:#ccc; max-width:280px;
+  pointer-events:none;
+  display:none;
+}
+#tooltip b { color:#fff; font-size:13px; }
+#tooltip .ex { color:#888; font-style:italic; margin-top:3px; font-size:11px; }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>英语情态思维模型 — 全部情态词空间分布</h1>
+  <p>锥尖=Now · 向右=未来 · 离轴心越远=现实度越低 · 点击情态词球体查看详解</p>
+</div>
+<div id="scene">
+  <canvas id="cv"></canvas>
+  <div id="hint">拖拽旋转 · 滚轮缩放 · 点击词球</div>
+  <div id="tooltip"></div>
+</div>
+<div id="ui">
+  <div id="btns">
+    <button class="btn on"  data-m="all">全部</button>
+    <button class="btn" data-m="past_domain">Past Domain</button>
+    <button class="btn" data-m="present_domain">Present Domain</button>
+    <button class="btn" data-m="zone1">Will / Shall 层</button>
+    <button class="btn" data-m="zone2">Must / Need 层</button>
+    <button class="btn" data-m="zone3">Can / Should 层</button>
+    <button class="btn" data-m="zone4">May / Ought to 层</button>
+    <button class="btn" data-m="zone5">Might / Could 层</button>
+    <button class="btn" data-m="zone6">Would 虚拟层</button>
+    <button class="btn" data-m="cf">Past Irrealis</button>
+  </div>
+  <div id="info"><b>点击任意情态词球体</b>查看含义、用法与例句。拖拽旋转查看锥体截面——离轴心越近现实度越高，越远越虚。</div>
+</div>
+
+<script>
+var cv   = document.getElementById('cv');
+var wrap = document.getElementById('scene');
+var tooltip = document.getElementById('tooltip');
+
+var renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x08080f,1);
+
+var scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x08080f,0.014);
+
+var camera = new THREE.PerspectiveCamera(46,1,0.1,300);
+var camTheta=2.55, camPhi=1.05, camR=28;
+var TGT = new THREE.Vector3(3,1,0);
+function moveCam(){
+  camera.position.set(
+    TGT.x+camR*Math.sin(camPhi)*Math.cos(camTheta),
+    TGT.y+camR*Math.cos(camPhi),
+    TGT.z+camR*Math.sin(camPhi)*Math.sin(camTheta)
+  );
+  camera.lookAt(TGT);
+}
+moveCam();
+
+scene.add(new THREE.AmbientLight(0xffffff,0.55));
+var sun=new THREE.DirectionalLight(0xffffff,0.80); sun.position.set(4,10,6); scene.add(sun);
+var fill=new THREE.DirectionalLight(0x3344ff,0.18); fill.position.set(-5,-4,-7); scene.add(fill);
+
+// ── registry ──────────────────────────────────────────────────
+var GRP={};
+['all','axis','realis','now','cf','past_infer','past_domain','present_domain',
+ 'zone1','zone2','zone3','zone4','zone5','zone6'].forEach(function(k){GRP[k]=[];});
+var LABELS=[], CF_OBJS=[], MODAL_SPHERES=[], ring;
+
+function reg(obj,keys){
+  scene.add(obj);
+  GRP.all.push(obj);
+  keys.forEach(function(k){if(GRP[k])GRP[k].push(obj);});
+}
+function pm(color,op,wire){
+  return new THREE.MeshPhongMaterial({color:color,opacity:op||1,
+    transparent:(op||1)<1,wireframe:!!wire,side:THREE.DoubleSide,depthWrite:(op||1)>0.85});
+}
+function bm(color,op,wire){
+  return new THREE.MeshBasicMaterial({color:color,opacity:op||1,
+    transparent:(op||1)<1,wireframe:!!wire,side:THREE.DoubleSide,depthWrite:(op||1)>0.85});
+}
+function addLabel(text,hex,x,y,z,keys){
+  var c=document.createElement('canvas'); c.width=600; c.height=72;
+  var ctx=c.getContext('2d');
+  ctx.font='bold 25px PingFang SC,Microsoft YaHei,sans-serif';
+  ctx.fillStyle='#'+hex.toString(16).padStart(6,'0');
+  ctx.textAlign='center'; ctx.fillText(text,300,50);
+  var sp=new THREE.Mesh(new THREE.PlaneGeometry(4.5,0.65),
+    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),
+      transparent:true,depthWrite:false,side:THREE.DoubleSide}));
+  sp.position.set(x,y,z); LABELS.push(sp); reg(sp,keys);
+}
+
+// ── modal word sphere with label ──────────────────────────────
+function addModal(word, info, x, y, z, color, radius, keys){
+  var r = radius||0.38;
+  // glow sphere
+  var sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(r,16,16),
+    new THREE.MeshPhongMaterial({
+      color:color, emissive:color, emissiveIntensity:0.35,
+      opacity:0.92, transparent:true
+    })
+  );
+  sphere.position.set(x,y,z);
+  sphere.userData = {word:word, info:info, color:color};
+  reg(sphere, keys.concat(['all']));
+  MODAL_SPHERES.push(sphere);
+
+  // word label above sphere
+  var c2=document.createElement('canvas'); c2.width=320; c2.height=56;
+  var ctx2=c2.getContext('2d');
+  ctx2.font='bold 24px PingFang SC,Microsoft YaHei,sans-serif';
+  ctx2.fillStyle='#'+color.toString(16).padStart(6,'0');
+  ctx2.textAlign='center'; ctx2.fillText(word,160,38);
+  var lsp=new THREE.Mesh(new THREE.PlaneGeometry(2.2,0.52),
+    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c2),
+      transparent:true,depthWrite:false,side:THREE.DoubleSide}));
+  lsp.position.set(x, y+r+0.5, z);
+  LABELS.push(lsp);
+  reg(lsp, keys.concat(['all']));
+}
+
+// ================================================================
+//  MODAL WORD DATA
+// ================================================================
+var MODAL_DATA = {
+  // Zone 1 — will / shall  (x:0.3~2.5, tight near apex)
+  'will': {
+    zh:'意志 / 预测（最高确定性）',
+    en:'Express intention or strong prediction. Closest to Now.',
+    ex:'We will make a cake.  /  It will rain tomorrow.',
+    zone:'zone1', color:0xF5A623, x:1.2, y:0.8, z:0.5
+  },
+  'shall': {
+    zh:'意志 / 承诺（正式，第一人称）',
+    en:'Formal intention or promise, mainly I/we.',
+    ex:'I shall return.  /  Shall we begin?',
+    zone:'zone1', color:0xF5A623, x:1.8, y:-0.6, z:-0.4
+  },
+
+  // Zone 2 — must / need / have to  (x:2~4.5, near axis = high necessity)
+  'must': {
+    zh:'必须 / 强推断（高确信）',
+    en:'Strong obligation or logical deduction.',
+    ex:'You must stop.  /  She must be home.',
+    zone:'zone2', color:0xFF6B6B, x:2.8, y:0.5, z:0.8
+  },
+  'need': {
+    zh:'需要（必要性）',
+    en:'Necessity — often interchangeable with must in negatives.',
+    ex:'You need not worry.  /  Need I say more?',
+    zone:'zone2', color:0xFF6B6B, x:3.5, y:-0.4, z:-0.7
+  },
+  'have to': {
+    zh:'不得不（外部义务）',
+    en:'External obligation — the rule comes from outside.',
+    ex:'I have to leave now.  /  She has to work.',
+    zone:'zone2', color:0xFF6B6B, x:2.5, y:1.0, z:-0.6
+  },
+
+  // Zone 3 — can / should / ought to  (x:3.5~7)
+  'can': {
+    zh:'能力 / 许可（条件具备）',
+    en:'Ability or permission — the door is open.',
+    ex:'She can speak French.  /  You can go now.',
+    zone:'zone3', color:0x5DCAA5, x:4.5, y:1.2, z:1.5
+  },
+  'should': {
+    zh:'应该（建议 / 义务 / 推断）',
+    en:'Recommendation, mild obligation, or expectation.',
+    ex:'You should rest.  /  It should be fine.',
+    zone:'zone3', color:0x5DCAA5, x:5.5, y:-1.0, z:1.8
+  },
+  'ought to': {
+    zh:'理应（道德义务）',
+    en:'Moral or social obligation — stronger than should.',
+    ex:'You ought to apologize.  /  He ought to know.',
+    zone:'zone3', color:0x5DCAA5, x:6.0, y:1.5, z:-1.2
+  },
+
+  // Zone 4 — may  (x:5.5~8.5, mid-outer)
+  'may': {
+    zh:'可能 / 许可（正式）',
+    en:'Possibility or formal permission.',
+    ex:'It may rain.  /  You may leave.',
+    zone:'zone4', color:0x9B8EFF, x:7.0, y:2.0, z:1.8
+  },
+
+  // Zone 5 — might / could  (x:8~12, outer cone, past-form distance)
+  'might': {
+    zh:'可能（低确信，过去式外衣）',
+    en:'Weaker possibility than may. Past form = reality distance.',
+    ex:'It might rain.  /  She might come.',
+    zone:'zone5', color:0xAFA9EC, x:9.5, y:2.8, z:2.5
+  },
+  'could': {
+    zh:'能够（过去能力 / 低可能性）',
+    en:'Past ability OR weaker possibility. Past form = distance.',
+    ex:'Could you help?  /  It could work.',
+    zone:'zone5', color:0xAFA9EC, x:10.5, y:-2.2, z:2.8
+  },
+
+  // Zone 6 — would  (x:11~15, outermost, counterfactual/hypothetical)
+  'would': {
+    zh:'虚拟 / 习惯 / 礼貌（最远离现实）',
+    en:'Hypothetical, conditional, polite, or past habit.',
+    ex:'I would help if I could.  /  Would you like tea?',
+    zone:'zone6', color:0xCCA0FF, x:12.5, y:3.5, z:3.0
+  },
+  'would (habit)': {
+    zh:'过去习惯（以前总是…）',
+    en:'Past repeated action — no longer happening now.',
+    ex:'We would walk to school every day.',
+    zone:'zone6', color:0xCCA0FF, x:13.5, y:-2.8, z:-2.5
+  }
+};
+
+// ================================================================
+//  1. TIME AXIS
+// ================================================================
+var ax=new THREE.Mesh(new THREE.CylinderGeometry(.034,.034,36,8),pm(0x444444,.32));
+ax.rotation.z=Math.PI/2; ax.position.x=2; reg(ax,['all','axis']);
+var tip=new THREE.Mesh(new THREE.ConeGeometry(.12,.48,8),pm(0x555555,.42));
+tip.rotation.z=-Math.PI/2; tip.position.set(19,0,0); reg(tip,['all','axis']);
+addLabel('← 过去',  0x444444,-13,-1.1,0,['all','axis']);
+addLabel('未来 →',0x444444, 18,-1.1,0,['all','axis']);
+
+// ================================================================
+//  2. PAST DOMAIN
+// ================================================================
+var pdW=14;
+var pdBoxH=8.5, pdBoxYc=-0.11+pdBoxH/2;
+var pdBox=new THREE.Mesh(new THREE.BoxGeometry(pdW,pdBoxH,7),bm(0x4488bb,.055,true));
+pdBox.position.set(-pdW/2,pdBoxYc,0); reg(pdBox,['all','past_domain']);
+addLabel('PAST DOMAIN',0x4488bb,-pdW/2,pdBoxYc+pdBoxH/2+0.8,0,['all','past_domain']);
+
+// Past Realis slab
+var slab=new THREE.Mesh(new THREE.BoxGeometry(pdW,.22,6.0),pm(0x3B8BD4,.78));
+slab.position.set(-pdW/2,0,0); reg(slab,['all','realis','past_domain']);
+for(var i=0;i<5;i++){
+  var sl=new THREE.Mesh(new THREE.BoxGeometry(pdW,.024,6.0),pm(0x7ec8f0,.09));
+  sl.position.set(-pdW/2,-0.085+i*.048,0); reg(sl,['all','realis','past_domain']);
+}
+addLabel('Past Realis  已坍缩历史',0x3B8BD4,-pdW/2,-.75,3.3,['all','realis','past_domain']);
+
+// Past Irrealis zone (sits on top of slab)
+var piH=7.2, piYc=0.11+piH/2;
+var piMesh=new THREE.Mesh(new THREE.BoxGeometry(pdW,piH,6.5),bm(0xE24B4A,.032));
+piMesh.position.set(-pdW/2,piYc,0); reg(piMesh,['all','cf','past_domain']);
+var piWire=new THREE.Mesh(new THREE.BoxGeometry(pdW,piH,6.5),bm(0xE24B4A,.09,true));
+piWire.position.set(-pdW/2,piYc,0); reg(piWire,['all','cf','past_domain']);
+addLabel('Past Irrealis（反事实 / 过去推断）',0xdd5544,-pdW/2,piYc+piH/2+0.5,0,['all','cf','past_domain']);
+
+// Past modal expressions (inside Past Domain)
+var pastModals = [
+  {word:'must have done',  zh:'过去强推断',   ex:'She must have left already.',     x:-3,  y:2.5, z:1.5,  color:0xFF6B6B},
+  {word:'should have done',zh:'本应做（遗憾）',ex:'You should have called me.',      x:-5,  y:3.8, z:-1.5, color:0x5DCAA5},
+  {word:'could have done', zh:'本可以做',     ex:'I could have helped you.',        x:-7,  y:2.8, z:2.0,  color:0xAFA9EC},
+  {word:'might have done', zh:'可能已经做了', ex:'She might have taken the train.', x:-9,  y:4.2, z:-1.0, color:0xAFA9EC},
+  {word:'would have done', zh:'虚拟过去结果', ex:'I would have come if I had known.',x:-11, y:3.2, z:1.8,  color:0xCCA0FF},
+];
+pastModals.forEach(function(m){
+  addModal(m.word, {zh:m.zh,en:'',ex:m.ex,zone:'cf',color:m.color},
+    m.x, m.y, m.z, m.color, 0.32, ['cf','past_domain']);
+});
+
+// Counterfactual bubbles
+var cfDefs=[[-2.5,.9,-2.0],[-5.0,1.6,1.8],[-4.2,2.8,.3],[-3.0,1.3,2.5],
+            [-7.5,1.0,.7],[-9.5,2.2,-1.5],[-11.0,1.5,1.2],[-6.5,3.8,-2.0],[-8.5,4.5,2.3]];
+cfDefs.forEach(function(p,i){
+  var r=.28+i*.038;
+  var s1=new THREE.Mesh(new THREE.SphereGeometry(r,12,12),pm(0xE24B4A,.18));
+  s1.position.set(p[0],p[1],p[2]); reg(s1,['all','cf','past_domain']);
+  var s2=new THREE.Mesh(new THREE.SphereGeometry(r,12,12),pm(0xE24B4A,.45,true));
+  s2.position.set(p[0],p[1],p[2]); reg(s2,['all','cf','past_domain']);
+  CF_OBJS.push({o1:s1,o2:s2});
+});
+
+// ================================================================
+//  3. PRESENT DOMAIN (thin slice around Now)
+// ================================================================
+var pdSlabM=new THREE.Mesh(new THREE.BoxGeometry(3,9,7),bm(0xffffff,.018));
+pdSlabM.position.set(.5,3.8,0); reg(pdSlabM,['all','now','present_domain']);
+var pdSlabW=new THREE.Mesh(new THREE.BoxGeometry(3,9,7),bm(0xffffff,.08,true));
+pdSlabW.position.set(.5,3.8,0); reg(pdSlabW,['all','now','present_domain']);
+addLabel('PRESENT DOMAIN',0xcccccc,.5,8.8,0,['all','present_domain','now']);
+addLabel('is leaving / can / will…',0x777777,.5,7.7,0,['all','present_domain','now']);
+
+// Now disc
+var nowDisc=new THREE.Mesh(new THREE.CircleGeometry(6.5,52),bm(0xffffff,.025));
+nowDisc.rotation.y=Math.PI/2; reg(nowDisc,['all','now','present_domain']);
+
+// Now ring
+ring=new THREE.Mesh(new THREE.TorusGeometry(1.35,.082,10,64),
+  new THREE.MeshPhongMaterial({color:0xffffff,emissive:0xffffff,
+    emissiveIntensity:.75,opacity:.95,transparent:true}));
+ring.rotation.y=Math.PI/2; reg(ring,['all','now','present_domain']);
+
+var vbar=new THREE.Mesh(new THREE.CylinderGeometry(.038,.038,9,8),pm(0xffffff,.40));
+vbar.position.set(0,4.5,0); reg(vbar,['all','now','present_domain']);
+addLabel('Now  坍缩前沿',0xffffff,.3,6.6,0,['all','now','present_domain']);
+
+// ================================================================
+//  4. CONE (apex at x=0, opens toward +x future)
+// ================================================================
+var CH=16, CR=7.0, SEGS=52;
+function buildCone(H,R,S){
+  var pos=[],idx=[];
+  for(var i=0;i<S;i++){
+    var a=i/S*Math.PI*2;
+    pos.push(H,R*Math.cos(a),R*Math.sin(a));
+  }
+  pos.push(0,0,0);
+  var apex=S;
+  for(var i=0;i<S;i++) idx.push(apex,i,(i+1)%S);
+  var g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+reg(new THREE.Mesh(buildCone(CH,CR,SEGS),bm(0x5DCAA5,.032)),['all']);
+reg(new THREE.Mesh(buildCone(CH,CR,20), bm(0x5DCAA5,.09,true)),['all']);
+
+// base ring
+var brPts=[];
+for(var i=0;i<=72;i++){var a=i/72*Math.PI*2; brPts.push(new THREE.Vector3(CH,CR*Math.cos(a),CR*Math.sin(a)));}
+reg(new THREE.Line(new THREE.BufferGeometry().setFromPoints(brPts),
+  new THREE.LineBasicMaterial({color:0x5DCAA5,opacity:.15,transparent:true})),['all']);
+
+// density rings (cross-section circles at different x positions)
+[2.5, 5.5, 9.0, 13.0].forEach(function(xPos){
+  var rPts=[], rr=(xPos/CH)*CR;
+  for(var i=0;i<=48;i++){var a=i/48*Math.PI*2; rPts.push(new THREE.Vector3(xPos,rr*Math.cos(a),rr*Math.sin(a)));}
+  reg(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rPts),
+    new THREE.LineBasicMaterial({color:0x5DCAA5,opacity:.08,transparent:true})),['all']);
+});
+
+// ================================================================
+//  5. BACKGROUND PARTICLES (density cloud)
+// ================================================================
+function makePts(xMin,xMax,count,color,size,op,keys){
+  var pts=[],tries=0;
+  while(pts.length<count&&tries<count*30){
+    tries++;
+    var x=xMin+Math.random()*(xMax-xMin);
+    var maxR=(x/CH)*CR*.80;
+    var r=Math.sqrt(Math.random())*maxR;
+    var a=Math.random()*Math.PI*2;
+    pts.push(new THREE.Vector3(x,r*Math.cos(a),r*Math.sin(a)));
+  }
+  reg(new THREE.Points(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.PointsMaterial({color:color,size:size,transparent:true,opacity:op,sizeAttenuation:true})),
+    keys.concat(['all']));
+}
+makePts(0.05,2.8, 120,0xF5A623,0.12,0.55,['zone1','present_domain']);
+makePts(2.0, 5.0, 100,0xFF6B6B,0.11,0.50,['zone2']);
+makePts(3.5, 7.5, 100,0x5DCAA5,0.11,0.50,['zone3']);
+makePts(5.5, 9.5,  80,0x9B8EFF,0.11,0.48,['zone4']);
+makePts(8.0,12.5,  80,0xAFA9EC,0.10,0.45,['zone5']);
+makePts(11.0,16.0, 60,0xCCA0FF,0.10,0.40,['zone6']);
+
+// ================================================================
+//  6. MODAL WORD SPHERES (future cone)
+// ================================================================
+Object.keys(MODAL_DATA).forEach(function(word){
+  var d=MODAL_DATA[word];
+  addModal(word, d, d.x, d.y, d.z, d.color, 0.38, [d.zone,'present_domain']);
+});
+// fix zone assignments
+// will/shall → also present_domain
+// re-register correctly handled above via addModal keys
+
+// ================================================================
+//  7. PAST INFERENCE RAY
+// ================================================================
+var rPts=[new THREE.Vector3(-0.1,.3,.8),new THREE.Vector3(-9.0,3.6,.8)];
+reg(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rPts),
+  new THREE.LineBasicMaterial({color:0xF09595,opacity:.80,transparent:true})),
+  ['all','past_infer','past_domain','cf']);
+var rdot=new THREE.Mesh(new THREE.SphereGeometry(.22,12,12),pm(0xF09595,.88));
+rdot.position.copy(rPts[1]); reg(rdot,['all','past_infer','past_domain','cf']);
+
+// ================================================================
+//  RESIZE & ORBIT
+// ================================================================
+function resize(){
+  var w=wrap.clientWidth,h=wrap.clientHeight;
+  if(w<1||h<1)return;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+}
+resize(); window.addEventListener('resize',resize);
+
+var drag=false,lx=0,ly=0,moved=false;
+cv.addEventListener('mousedown',function(e){drag=true;lx=e.clientX;ly=e.clientY;moved=false;e.preventDefault();});
+window.addEventListener('mouseup',function(e){
+  if(!moved) handleClick(e);
+  drag=false;
+});
+window.addEventListener('mousemove',function(e){
+  if(!drag)return;
+  var dx=e.clientX-lx, dy=e.clientY-ly;
+  if(Math.abs(dx)>3||Math.abs(dy)>3) moved=true;
+  camTheta-=dx*.007;
+  camPhi=Math.max(.06,Math.min(3.08,camPhi-dy*.007));
+  lx=e.clientX;ly=e.clientY;moveCam();
+});
+cv.addEventListener('wheel',function(e){
+  camR=Math.max(5,Math.min(55,camR+e.deltaY*.03));
+  moveCam();e.preventDefault();
+},{passive:false});
+var ltd=0;
+cv.addEventListener('touchstart',function(e){
+  if(e.touches.length===1){drag=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY;moved=false;}
+  if(e.touches.length===2) ltd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+},{passive:true});
+cv.addEventListener('touchend',function(e){
+  if(!moved&&e.changedTouches.length>0){
+    var t=e.changedTouches[0];
+    handleClick({clientX:t.clientX,clientY:t.clientY});
+  }
+  drag=false;
+},{passive:true});
+cv.addEventListener('touchmove',function(e){
+  if(e.touches.length===1&&drag){
+    var dx=e.touches[0].clientX-lx,dy=e.touches[0].clientY-ly;
+    if(Math.abs(dx)>3||Math.abs(dy)>3)moved=true;
+    camTheta-=dx*.009;
+    camPhi=Math.max(.06,Math.min(3.08,camPhi-dy*.009));
+    lx=e.touches[0].clientX;ly=e.touches[0].clientY;moveCam();
+  }
+  if(e.touches.length===2){
+    var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    camR=Math.max(5,Math.min(55,camR-(d-ltd)*.06));ltd=d;moveCam();
+  }
+},{passive:true});
+
+// ================================================================
+//  CLICK → RAYCASTING for modal spheres
+// ================================================================
+var raycaster=new THREE.Raycaster();
+var mouse=new THREE.Vector2();
+function handleClick(e){
+  var rect=cv.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  var hits=raycaster.intersectObjects(MODAL_SPHERES);
+  if(hits.length>0){
+    var d=hits[0].object.userData;
+    showTooltip(d, e.clientX-rect.left, e.clientY-rect.top);
+  } else {
+    tooltip.style.display='none';
+  }
+}
+function showTooltip(d,x,y){
+  var col='#'+d.color.toString(16).padStart(6,'0');
+  tooltip.innerHTML=
+    '<b style="color:'+col+'">'+d.word+'</b><br>'+
+    d.zh+'<br>'+
+    (d.en?'<span style="color:#666;font-size:11px">'+d.en+'</span><br>':'')+
+    '<div class="ex">'+d.ex+'</div>';
+  tooltip.style.display='block';
+  var tx=x+16, ty=y+16;
+  if(tx+290>wrap.clientWidth) tx=x-300;
+  if(ty+120>wrap.clientHeight) ty=y-120;
+  tooltip.style.left=tx+'px';
+  tooltip.style.top=ty+'px';
+}
+
+// ================================================================
+//  MODE BUTTONS
+// ================================================================
+var INFO={
+  all:'<b>完整模型</b>：点击任意情态词球体查看详解。锥尖=Will/Shall（最高确定性），向外依次是 Must/Can/May/Might/Could/Would（现实距离递增）。Past Domain 内有过去情态表达。',
+  past_domain:'<b>Past Domain</b>：must have done（强推断）/ should have done（遗憾）/ could have done（本可以）/ would have done（虚拟结果）。这些表达的评估锚点仍在 Now，但目标命题在过去。',
+  present_domain:'<b>Present Domain</b>：紧贴 Now 的薄切片。Will/Shall 锥尖层在此。正在发生的 Realis（is leaving）也在此。是坍缩正在发生的界面。',
+  zone1:'<b>Will / Shall</b>（橙，锥尖极近）：意志或强预测，现实度最高，距坍缩仅一步。<i>We will go. / I shall return.</i>',
+  zone2:'<b>Must / Need / Have to</b>（红，内层）：强义务或强逻辑推断，几乎没有选择空间。<i>You must stop. / She must be tired.</i>',
+  zone3:'<b>Can / Should / Ought to</b>（青，中内层）：能力许可或建议义务，门开着但未必走入。<i>You can go. / You should rest.</i>',
+  zone4:'<b>May / Ought to</b>（紫，中层）：较正式的可能性或许可，现实度中等。<i>It may rain. / You may leave.</i>',
+  zone5:'<b>Might / Could</b>（淡紫，外层）：<b>借过去式外衣</b>表达现实距离远，不在 Past Domain。可能性低，语气委婉。<i>It might work. / Could you help?</i>',
+  zone6:'<b>Would</b>（粉紫，极外层）：虚拟条件、礼貌请求或过去习惯，现实度最低。<i>I would help if I could. / Would you like tea?</i>',
+  cf:'<b>Past Irrealis</b>：反事实泡泡 + 过去情态推断。事件在 Past Domain，但说话者认知未锁定（推断）或永不会发生（反事实）。'
+};
+
+document.querySelectorAll('.btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.btn').forEach(function(b){b.classList.remove('on');});
+    btn.classList.add('on');
+    tooltip.style.display='none';
+    var mode=btn.dataset.m;
+    document.getElementById('info').innerHTML=INFO[mode]||INFO.all;
+    var showAll=mode==='all';
+    var active=showAll?null:[mode,'now','axis'];
+    GRP.all.forEach(function(o){
+      o.traverse(function(m){
+        if(m.material&&m.material._base===undefined) m.material._base=m.material.opacity;
+      });
+    });
+    GRP.all.forEach(function(o){
+      var vis=showAll;
+      if(!vis&&active){
+        active.forEach(function(k){if(GRP[k]&&GRP[k].indexOf(o)>=0)vis=true;});
+      }
+      o.traverse(function(m){
+        if(m.material){
+          if(m.material._base===undefined) m.material._base=m.material.opacity;
+          m.material.opacity=vis?m.material._base:m.material._base*.03;
+        }
+      });
+    });
+  });
+});
+
+// ================================================================
+//  ANIMATION
+// ================================================================
+var t=0;
+(function loop(){
+  requestAnimationFrame(loop);
+  t+=.016;
+  ring.scale.setScalar(1+.055*Math.sin(t*2.1));
+  CF_OBJS.forEach(function(c,i){
+    var dy=Math.sin(t*.6+i*1.15)*.003;
+    c.o1.position.y+=dy; c.o2.position.y+=dy;
+  });
+  // gentle pulse for modal spheres
+  MODAL_SPHERES.forEach(function(s,i){
+    s.scale.setScalar(1+.04*Math.sin(t*1.5+i*.7));
+  });
+  LABELS.forEach(function(l){l.quaternion.copy(camera.quaternion);});
+  renderer.render(scene,camera);
+})();
+</script>
+</body>
+</html>
